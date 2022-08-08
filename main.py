@@ -4,6 +4,7 @@ import sys
 import os
 
 import inject
+import parse
 from pages import *
 from prototypes import DataHolder
 

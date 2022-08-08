@@ -1,51 +1,76 @@
+import re
 from abc import abstractmethod, ABCMeta
 
 
+class UniversalConfigs:
+    HIGHLIGHT_COLOR = "red"
+
+
 class ShipSystem:
-    property_def = {
-        "name": "name",
-        "id": "id",
-        "desc_in_codex": "text1",
-        "system_type": "text2",
-        "desc_on_ship": "text3",
-        "highlight": "text4"
-    }
     """
     舰船的战术系统.
     """
+    property_def = {
+        "id": "id",
+        "name": "name",
+        "desc_csv": {
+            "desc_in_codex": "text1",
+            "system_type": "text2",
+            "desc_on_ship": "text3",
+            "highlights": "text4"},
+    }
 
     def __init__(self, system_id: str,
-                 name: str):
-        self.id = system_id
-        self.name = name
-        self.system_type: str = ""
-        self.desc_in_codex: str = ""
-        self.desc_on_ship: str = ""
-        self.highlight: str = ""
+                 name: str,
+                 system_type: str = None,
+                 desc_in_codex: str = None,
+                 desc_on_ship: str = None,
+                 highlights: str = None):
+        self.id: str = system_id
+        self.name: str = name
+        for key in ShipSystem.property_def["desc_csv"].keys():
+            self.__setattr__(key, "")
+        self.system_type: str = system_type if system_type else ""
+        self.desc_in_codex: str = desc_in_codex if desc_in_codex else ""
+        self.desc_on_ship: str = desc_on_ship if desc_on_ship else ""
+        self.highlights: str = highlights if highlights else ""
 
     @property
     def desc_on_ship_display(self) -> str:
-        if len(self.highlight) == 0:
+        if len(self.highlights) == 0:
             return self.desc_on_ship
         else:
-            text = self.desc_on_ship
-            for tag in self.highlight.split("|"):
-                text = text.replace(tag, "%s", 1)
-            for tag in self.highlight.split("|"):
-                text = text.replace("%s", "<font color=red>" + tag + "</font> ", 1)
-            return text
+            desc_in_html = self.desc_on_ship
+            tag_symbol = "%#s#%"
+            for tag in self.highlights.split("|"):
+                desc_in_html = desc_in_html.replace(tag, tag_symbol, 1)
+            for tag in self.highlights.split("|"):
+                # add style wrapping to change color
+                hi_light_html = r"<font color=" + UniversalConfigs.HIGHLIGHT_COLOR + r">" + tag + r"</font> "
+                #
+                desc_in_html = desc_in_html.replace(tag_symbol, hi_light_html, 1)
+            return desc_in_html
 
     @property
     def desc_on_ship_trans(self) -> str:
-        if len(self.highlight) == 0:
+        if len(self.highlights) == 0:
             return self.desc_on_ship
         else:
             text = self.desc_on_ship
-            for tag in self.highlight.split("|"):
-                text = text.replace(tag, "%s", 1)
-            for tag in self.highlight.split("|"):
-                text = text.replace("%s", "{{" + tag + "}}", 1)
+            tag_symbol = "%#s#%"
+            for tag in self.highlights.split("|"):
+                text = text.replace(tag, tag_symbol, 1)
+            for tag in self.highlights.split("|"):
+                text = text.replace(tag_symbol, "{{" + tag + "}}", 1)
             return text
+
+    def set_desc_on_ship_trans(self, desc_on_ship_str: str):
+        highlights = re.findall(r"\{\{(.+?)\}\}", desc_on_ship_str, )
+        if len(highlights) == 0:
+            self.highlights = ""
+        else:
+            self.highlights = " | ".join(highlights)
+        self.desc_on_ship = re.sub(r"\{\{|\}\}", "", desc_on_ship_str)
 
 
 class HullLike:
@@ -84,6 +109,15 @@ class ShipHull(HullLike):
     """
     基本船体数据.
     """
+    property_def = {
+        "id": "id",
+        "name": "name",
+        "desc_csv": {
+            "desc_long": "text1",
+            "desc_short": "text2",
+            "desc_fleet": "text3",
+        }
+    }
 
     @property
     def id(self) -> str:
@@ -113,22 +147,30 @@ class ShipHull(HullLike):
                  desc_long=None,
                  desc_short=None,
                  desc_fleet=None,
-                 ship_system: ShipSystem | None = None):
+                 ship_system=None):
         super().__init__()
         self._id = ship_id
         self._ship_name = ship_name
         self.ship_designation = ship_role
         self._tech_manufacturer = manufacturer
+        # descriptions
         self.desc_long = "" if desc_long is None else desc_long
         self.desc_short = "" if desc_short is None else desc_short
         self.desc_fleet = "" if desc_fleet is None else desc_fleet
-        self._shipsystem = ship_system
+        # other
+        self._shipsystem: ShipSystem | None = ship_system
 
 
 class ShipSkin(HullLike):
     """
     基于某个船体的变体数据.
     """
+    property_def = {
+        "id": "skinHullId",
+        "name": "hullName",
+        "tech": "tech",
+        "prefix": "descriptionPrefix",
+    }
 
     @property
     def id(self) -> str:
@@ -140,19 +182,16 @@ class ShipSkin(HullLike):
 
     @property
     def tech_manufacturer(self) -> str:
-        if self._manufacturer is None:
+        if self.tech is None:
             return self.base_hull.tech_manufacturer
         else:
-            return self._manufacturer
+            return self.tech
 
     @property
     def full_description(self) -> str:
-        if self._prefix is not None:
-            result = self._prefix + "\n\n" + self.base_hull.full_description
-        else:
-            result = self.base_hull.full_description
-        if self._suffix is not None:
-            result = result + "\n\n" + self._suffix
+        result = self.base_hull.full_description
+        if self.prefix is not None:
+            result = self.prefix + "\n\n" + self.base_hull.full_description
         return result
 
     @property
@@ -172,15 +211,13 @@ class ShipSkin(HullLike):
                  manufacturer: str | None,
                  system_changed: bool,
                  ship_system: ShipSystem | None,
-                 prefix=None,
-                 suffix=None, ):
+                 prefix=None, ):
         super(ShipSkin, self).__init__()
         self._id = skin_id
-
         self._skin_name = skin_name
-        self._manufacturer = manufacturer
-        self.prefix = prefix
-        self.suffix = suffix
+
+        self.tech: str | None = manufacturer
+        self.prefix: str = "" if prefix is None else prefix
 
         self.base_hull = base_hull
         self._shipsystem = ship_system
@@ -197,8 +234,10 @@ class Weapon:
         "fly_speed": "speedStr",
         "tracking": "trackingStr",
         "turn_rate": "turnRateStr",
-        "description": "text1",
-        "desc_foot_note": "text2"
+        "desc_csv": {
+            "description": "text1",
+            "desc_foot_note": "text2"
+        }
     }
 
     def __init__(self,
@@ -213,17 +252,19 @@ class Weapon:
         self.role = role
 
         # strings below are all optional
-        self.tech: str = manufacturer
-        self.description: str = ''
-        self.desc_foot_note: str = ''
-        self.accuracy: str = ''
-        self.turn_rate: str = ''
-        self.fly_speed: str = ''
-        self.tracking: str = ''
-        self.special_effect_1: str = ''
-        self.special_effect_1_hl: str = ''
-        self.special_effect_2: str = ''
-        self.special_effect_2_hl: str = ''
+        self.tech: str = manufacturer if manufacturer else ""
+
+        self.description: str = ""
+        self.desc_foot_note: str = ""
+
+        self.accuracy: str = ""
+        self.turn_rate: str = ""
+        self.fly_speed: str = ""
+        self.tracking: str = ""
+        self.special_effect_1: str = ""
+        self.special_effect_1_hl: str = ""
+        self.special_effect_2: str = ""
+        self.special_effect_2_hl: str = ""
 
     @property
     def special_effect_1_display(self) -> str:
@@ -231,9 +272,10 @@ class Weapon:
             return self.special_effect_1
         else:
             display_text = self.special_effect_1
-            high_lights = self.special_effect_1_hl.split("|")
-            for high_light in high_lights:
-                display_text = display_text.replace("%s", "<font color=red>" + high_light + "</font>", 1)
+            highlights = self.special_effect_1_hl.split("|")
+            for highlight in highlights:
+                tag_symbol = "<font color=" + UniversalConfigs.HIGHLIGHT_COLOR + ">" + highlight + "</font>"
+                display_text = display_text.replace("%s", tag_symbol, 1)
             return display_text
 
     @property
@@ -242,9 +284,10 @@ class Weapon:
             return self.special_effect_2
         else:
             display_text = self.special_effect_2
-            high_lights = self.special_effect_2_hl.split("|")
-            for high_light in high_lights:
-                display_text = display_text.replace("%s", "<font color=red>" + high_light + "</font>", 1)
+            highlights = self.special_effect_2_hl.split("|")
+            for highlight in highlights:
+                tag_symbol = "<font color=" + UniversalConfigs.HIGHLIGHT_COLOR + ">" + highlight + "</font>"
+                display_text = display_text.replace("%s", tag_symbol, 1)
             return display_text
 
     @property
@@ -270,16 +313,92 @@ class Weapon:
             return display_text
 
 
+class Faction:
+    """
+    Faction data.
+    """
+    property_def = {
+        "id": "id",
+        "name": "displayName",
+        "name_article": "displayNameWithArticle",
+        # optional
+        "name_long": "displayNameLong",
+        "name_long_article": "displayNameLongWithArticle",
+
+        "ship_prefix": "shipNamePrefix",
+        "ranks": "ranks.ranks",
+        "posts": "ranks.posts",
+        "fleet_types": "fleetTypeNames",
+
+        "desc_csv": {
+            "description": "text1"
+        }
+    }
+
+    def __init__(self, faction_id: str, faction_name: str, name_article: str):
+        self.id: str = faction_id
+        self.name: str = faction_name
+        self.name_article: str = name_article
+
+        self.name_long: str = ""
+        self.name_long_article: str = ""
+
+        self.ship_prefix: str = ""
+        self.ranks = {}
+        self.fleet_type = {}
+
+
 class Variant:
+    """
+    ship_variants
+    """
+
     def __init__(self,
                  variant_id: str,
                  type_name: str,
                  base_hull: HullLike,
                  weapon_list: list | None = None):
         self._id = variant_id
+        self.is_fighter = False  # todo Recognize fighter hull
         self.base_hull = base_hull
         self.weapons = weapon_list
         self.display_name = type_name
+
+
+class ModInfo:
+    """
+    metadata of a mod.
+    """
+    property_def = {
+        "id": "id",
+        "name": "name",
+        # optional
+        "version": "version",
+        "game_version": "gameVersion",
+        "author": "author",
+        "description": "description"
+    }
+
+    def __init__(self, mod_id: str, mod_name: str):
+        for key in ModInfo.property_def.keys():
+            self.__setattr__(key, None)
+            self.id = mod_id
+            self.name = mod_name
+
+
+class Resource:
+    property_def = {
+        "id": "id",
+        "name": "name",
+        "desc_csv": {
+            "description": "text1"
+        }
+    }
+
+    def __init__(self, resource_id: str, name: str):
+        self.id = resource_id
+        self.name = name
+        self.description = ""
 
 
 class WholeMOD:

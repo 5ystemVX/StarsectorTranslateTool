@@ -1,7 +1,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-import parse
+from parse import ModParser
 import prototypes
 
 
@@ -22,10 +22,10 @@ class ShipHullListPage(QWidget):
 
     def get_data(self, force_update: bool = False):
         if self.data_holder.descriptions is None or force_update:
-            self.data_holder.descriptions = parse.parse_descriptions(self.data_holder.mod_path)
+            self.data_holder.descriptions = ModParser.parse_descriptions(self.data_holder.mod_path)
         if self.data_holder.ship_hulls is None or force_update:
-            self.data_holder.ship_hulls = parse.parse_hulls(self.data_holder.mod_path,
-                                                            self.data_holder.descriptions.get("SHIP"))
+            self.data_holder.ship_hulls = ModParser.parse_hulls(self.data_holder.mod_path,
+                                                                self.data_holder.descriptions.get("SHIP"))
         self.hull_id_list = list(self.data_holder.ship_hulls.keys())
 
     def _setup_ui(self):
@@ -245,10 +245,10 @@ class WeaponListPage(QWidget):
 
     def get_data(self, force_update: bool = False):
         if self.data_holder.descriptions is None or force_update:
-            self.data_holder.descriptions = parse.parse_descriptions(self.data_holder.mod_path)
+            self.data_holder.descriptions = ModParser.parse_descriptions(self.data_holder.mod_path)
         if self.data_holder.weapons is None or force_update:
-            self.data_holder.weapons = parse.parse_weapons(self.data_holder.mod_path,
-                                                           self.data_holder.descriptions.get("WEAPON"))
+            self.data_holder.weapons = ModParser.parse_weapons(self.data_holder.mod_path,
+                                                               self.data_holder.descriptions.get("WEAPON"))
         self.weapon_id_list = list(self.data_holder.weapons.keys())
 
     def _setup_ui(self):
@@ -384,7 +384,7 @@ class WeaponTranslateBlock(QWidget):
         for key, group in self.groups_def.items():
             entry_label = QLabel()
             entry_label.setText(group[0])
-            entry_layout.addWidget(entry_label)
+            entry_layout.addWidget(entry_label, alignment=Qt.AlignLeft | Qt.AlignHCenter)
 
             origin_text = group[1]()
             origin_text.setReadOnly(True)
@@ -537,10 +537,11 @@ class ShipSystemListPage(QWidget):
 
     def get_data(self, force_update: bool = False):
         if self.data_holder.descriptions is None or force_update:
-            self.data_holder.descriptions = parse.parse_descriptions(self.data_holder.mod_path)
+            self.data_holder.descriptions = ModParser.parse_descriptions(self.data_holder.mod_path)
         if self.data_holder.ship_systems is None or force_update:
-            self.data_holder.ship_systems = parse.parse_ship_systems(self.data_holder.mod_path,
-                                                                     self.data_holder.descriptions.get("SHIP_SYSTEM"))
+            self.data_holder.ship_systems = ModParser.parse_ship_systems(self.data_holder.mod_path,
+                                                                         self.data_holder.descriptions.get(
+                                                                             "SHIP_SYSTEM"))
         self.shipsystem_id_list = list(self.data_holder.ship_systems.keys())
 
     def _setup_ui(self):
@@ -751,7 +752,7 @@ class ShipSystemTranslateBlock(QWidget):
             text = self.ship_system.desc_on_ship_display
             self.original_text["desc_on_ship"].setText(text)
             self.edit_boxes["desc_on_ship"].setReadOnly(False)
-        translate = self.translate_data.get("special_effect_1")
+        translate = self.translate_data.get("desc_on_ship")
         if translate is not None:
             self.edit_boxes["desc_on_ship"].setText(translate)
         else:
