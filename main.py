@@ -182,9 +182,9 @@ class AppMainWindow(QMainWindow):
                                                         self.ui_str["wt_load_mod"],
                                                         self.io_path
                                                         )
-        if get_mod_path is not None:
-            self.io_path = get_mod_path
-            self.data_holder = DataHolder()
+        if get_mod_path:
+            self.io_path = os.path.realpath(get_mod_path + r"/..")
+            self.data_holder.clear()
             self.data_holder.mod_path = get_mod_path
             if self.centralWidget() is not None:
                 self.centralWidget().update()

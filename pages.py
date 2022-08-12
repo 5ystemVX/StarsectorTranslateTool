@@ -31,8 +31,10 @@ class ModMetaPage(QWidget):
             try:
                 self.data_holder.metadata = ModParser.parse_metadata(self.data_holder.mod_path)[0]
             except ValueError:
-                QMessageBox.warning(self, "", self.ui_str["msg_file_parse_failed"], QMessageBox.Close,
-                                    QMessageBox.Close)
+                QMessageBox().warning(self, "", self.ui_str["msg_file_parse_failed"], QMessageBox.Close,
+                                      QMessageBox.Close)
+        if self.data_holder.translates:
+            self.translate_data = self.data_holder.translates["MOD_META"]
 
     def _setup_ui(self):
         main_layout = QVBoxLayout()
@@ -90,7 +92,6 @@ class ModMetaPage(QWidget):
             self.title_label.setText(self.ui_str["now_editing"] + self.data_holder.metadata.id)
             self.version_display.setText(self.ui_str["mod_version"] + self.data_holder.metadata.version)
             self.author_display.setText(self.ui_str["mod_author"] + self.data_holder.metadata.author)
-            self.translate_data: dict = self.data_holder.translates["MOD_META"]
             self.name_display.setText(mod_info.name)
             self.version_display.setVisible(bool(mod_info.version))
             self.author_display.setVisible(bool(mod_info.author))
@@ -109,6 +110,16 @@ class ModMetaPage(QWidget):
                 self.desc_edit.setText(self.translate_data["description"])
             else:
                 self.desc_edit.setText("")
+            self.is_edited = False
+        else:
+            self.title_label.setText(self.ui_str["msg_file_not_found"].format(file_name="mod_info.json"))
+            self.version_display.setText(self.ui_str["mod_version"])
+            self.author_display.setText(self.ui_str["mod_author"])
+            self.name_display.setText("")
+            self.desc_display.setText("")
+            self.name_edit.setText("")
+            self.desc_edit.setText("")
+            self.is_edited = False
 
     def save_translation(self):
         if self.is_edited:
@@ -123,6 +134,10 @@ class ModMetaPage(QWidget):
         else:
             return False
 
+    def update(self) -> None:
+        self.get_data(force_update=True)
+        self.update_ui()
+
 
 class ShipHullListPage(QWidget):
     def __init__(self, parent, ui_str: dict, data_holder: prototypes.DataHolder):
@@ -135,9 +150,11 @@ class ShipHullListPage(QWidget):
 
         self._setup_ui()
 
-        if len(self.hull_id_list) > 0:
-            self.translate_block.load_data(self.data_holder.ship_hulls[self.hull_id_list[0]],
-                                           self.data_holder.translates.get(self.hull_id_list[0]))
+        self.update_ui()
+
+    def update(self) -> None:
+        self.get_data(force_update=True)
+        self.update_ui()
 
     def get_data(self, force_update: bool = False):
         if self.data_holder.descriptions is None or force_update:
@@ -193,8 +210,13 @@ class ShipHullListPage(QWidget):
 
         self.setLayout(main_layout)
 
-    def refresh_ui(self):
-        self._setup_ui()
+    def update_ui(self):
+        self.hull_list.clear()
+        for hull_id in self.data_holder.ship_hulls.keys():
+            self.hull_list.addItem(hull_id)
+        if len(self.hull_id_list) > 0:
+            self.translate_block.load_data(self.data_holder.ship_hulls[self.hull_id_list[0]],
+                                           self.data_holder.translates["SHIP"].get(self.hull_id_list[0]))
 
     def _hull_list_clicked(self, item):
         hull_id = item.text()
@@ -311,11 +333,10 @@ class ShipHullTranslateBlock(QWidget):
         else:
             self.translate_data = {}
         # change texts
-
         self.title_label.setText(self.ui["now_editing"] + " " + self.hull.id)
         for key, label in self.original_text.items():
             text = self.hull.__getattribute__(key)
-            if text is None or len(text) == 0:
+            if not text:
                 self.edit_boxes[key].setReadOnly(True)
                 label.setText(self.ui["no_text_here"])
             else:

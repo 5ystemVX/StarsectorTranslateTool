@@ -472,3 +472,7 @@ class DataHolder:
     @property
     def mod_info_path(self):
         return self.mod_path + r"\mod_info.json"
+
+    def clear(self):
+        self.__init__(self.game_root_path,self.mod_path)
+        pass

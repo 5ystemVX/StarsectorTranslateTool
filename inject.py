@@ -246,17 +246,26 @@ def inject_descriptions_csv(data_holder) -> str | None:
     return new_path
 
 
+def rewrite_mod_json(data_holder: DataHolder) -> str | None:
+    translation = data_holder.translates.get("MOD_META")
+    try:
+        new_path = data_holder.mod_path + r"/translate/mod_info.json_new"
+        info_json: dict = parse.ModParser.parse_metadata(data_holder.mod_path)[1]
+        if info_json.get("name"):
+            info_json["name"] = translation.get("name")
+        if info_json.get("description"):
+            info_json["description"] = translation.get("description")
+        with open(new_path, "w", encoding="utf8") as file:
+            json.dump(info_json, file)
+        return new_path
+    except Exception:
+        return None
+
+
 def make_translate_dir(mod_path):
     if not os.path.exists(mod_path + r"\translate\\"):
         os.mkdir(mod_path + r"\\translate\\")
 
 
 if __name__ == '__main__':
-    mod_data = DataHolder()
-    mod_data.mod_path = r"G:\[Games]\Starsector-0951aRC6\mods\Hiigaran Descendants.update.approved.DIY.by.DWARDEN.v211.rc4"
-    mod_data.mod_path = r"E:\MyProjects\StarsectorTranslateTool\testfiles\Hiigaran Descendants"
-    mod_data.descriptions = parse.parse_descriptions(mod_data.mod_path)
-    mod_data.ship_hulls = parse.parse_hulls(mod_data.mod_path, mod_data.descriptions["SHIP"])
-    mod_data.ship_systems = parse.parse_ship_systems(mod_data.mod_path, mod_data.descriptions["SHIP_SYSTEM"])
-    mod_data.weapons = parse.parse_weapons(mod_data.mod_path, mod_data.descriptions["WEAPON"])
-    export_data_as_translate(mod_data)
+    pass
