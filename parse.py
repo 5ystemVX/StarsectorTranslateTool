@@ -1,8 +1,6 @@
 import configparser
 import csv
-import json
 import logging
-import re
 from collections import deque
 
 import chardet
@@ -215,31 +213,30 @@ class ModParser:
             return {}
 
     @staticmethod
-    def parse_metadata(mod_path) -> ModInfo | None:
+    def parse_metadata(mod_path) -> (ModInfo, dict):
         file_path = mod_path + r"\mod_info.json"
         try:
-            with open(file_path, "rb") as file:
-                encoding_check = chardet.detect(file.read())
-            with open(file_path, "r", encoding=encoding_check["encoding"], errors="ignore") as json_file:
-                # remove all #-leading annotations
-                json_string = ModParser.__erase_hash_comment(json_file.readlines())
+            # read file
+            file_strs = ModParser.__read_text_file(file_path)
+            # remove all #-leading annotations
+            json_strs = ModParser.__erase_hash_comment(file_strs)
 
-                info_json: dict = json5.loads(''.join(json_string))
-                metadata = ModInfo(info_json["id"], info_json["name"])
-                metadata.game_version = info_json["gameVersion"]
-                mod_version = info_json.get("version")
-                if mod_version:
-                    if isinstance(mod_version, str):
-                        metadata.version = mod_version
-                    elif isinstance(mod_version, dict):
-                        metadata.version = ".".join(mod_version.values())
-                if info_json.get("author"):
-                    metadata.author = info_json["author"]
-                if info_json.get("description"):
-                    metadata.description = info_json["description"]
-                return metadata
+            info_json: dict = json5.loads(''.join(json_strs))
+            metadata = ModInfo(info_json["id"], info_json["name"])
+            metadata.game_version = info_json["gameVersion"]
+            mod_version = info_json.get("version")
+            if mod_version:
+                if isinstance(mod_version, str):
+                    metadata.version = mod_version
+                elif isinstance(mod_version, dict):
+                    metadata.version = ".".join(mod_version.values())
+            if info_json.get("author"):
+                metadata.author = info_json["author"]
+            if info_json.get("description"):
+                metadata.description = info_json["description"]
+            return metadata, info_json
         except OSError:
-            return None
+            return (None, None)
 
     @staticmethod
     def __erase_hash_comment(lines: list[str]) -> list[str]:

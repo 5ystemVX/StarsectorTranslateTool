@@ -1,7 +1,7 @@
 import json
+import os
 import shutil
 import sys
-import os
 
 import inject
 import parse
@@ -62,6 +62,10 @@ class AppMainWindow(QMainWindow):
         menu_file.addAction(temp)
 
         menu_edit = menu_bar.addMenu(ui_str["m_edit"])
+
+        temp = QAction(ui_str["m_edit_metadata"], self)
+        temp.triggered.connect(self.edit_mod_meta)
+        menu_edit.addAction(temp)
         temp = QAction(ui_str["m_edit_ship"], self)
         temp.triggered.connect(self.edit_hulls)
         menu_edit.addAction(temp)
@@ -95,6 +99,21 @@ class AppMainWindow(QMainWindow):
         except AttributeError:
             # doesn't have module that requires saving
             self.__turn_to_page(ShipHullListPage, self.data_holder)
+
+    def edit_mod_meta(self):
+        # not jump on its own
+        if type(self.centralWidget()) == ModMetaPage:
+            return
+        try:
+            if getattr(self.centralWidget(), "translate_block", None).is_edited:
+                reply = QMessageBox().question(self, "", self.ui_str["msg_unsaved_exit"],
+                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.No:
+                    return
+            self.__turn_to_page(ModMetaPage, self.data_holder)
+        except AttributeError:
+            # doesn't have module that requires saving
+            self.__turn_to_page(ModMetaPage, self.data_holder)
 
     def edit_weapons(self):
         # not jump on its own
@@ -175,6 +194,7 @@ class AppMainWindow(QMainWindow):
         shutil.copy(self.data_holder.weapon_csv_path, self.data_holder.weapon_csv_path + "_old")
         shutil.copy(self.data_holder.system_csv_path, self.data_holder.system_csv_path + "_old")
         shutil.copy(self.data_holder.hull_csv_path, self.data_holder.hull_csv_path + "_old")
+        shutil.copy(self.data_holder.mod_info_path, self.data_holder.mod_info_path + "_old")
         try:
             temp = inject.inject_descriptions_csv(self.data_holder)
             shutil.copy(temp, self.data_holder.description_csv_path)

@@ -452,7 +452,10 @@ class DataHolder:
 
     @property
     def description_csv_path(self):
-        return self.mod_path + r"\data\strings\descriptions.csv"
+        if self.mod_path:
+            return self.mod_path + r"\data\strings\descriptions.csv"
+        else:
+            return None
 
     @property
     def hull_csv_path(self):
@@ -465,3 +468,7 @@ class DataHolder:
     @property
     def system_csv_path(self):
         return self.mod_path + r"\data\shipsystems\ship_systems.csv"
+
+    @property
+    def mod_info_path(self):
+        return self.mod_path + r"\mod_info.json"

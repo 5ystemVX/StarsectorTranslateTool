@@ -1,8 +1,8 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from parse import ModParser
 import prototypes
+from parse import ModParser
 
 
 class ModMetaPage(QWidget):
@@ -14,6 +14,7 @@ class ModMetaPage(QWidget):
 
         self.is_edited = False
         self.translate_data = {}
+        self.translate_block = self
 
         self.get_data()
 
@@ -28,7 +29,7 @@ class ModMetaPage(QWidget):
 
         if self.data_holder.metadata is None:
             try:
-                self.data_holder.metadata = ModParser.parse_metadata(self.data_holder.mod_path)
+                self.data_holder.metadata = ModParser.parse_metadata(self.data_holder.mod_path)[0]
             except ValueError:
                 QMessageBox.warning(self, "", self.ui_str["msg_file_parse_failed"], QMessageBox.Close,
                                     QMessageBox.Close)
@@ -77,6 +78,10 @@ class ModMetaPage(QWidget):
         sub_layout.addWidget(self.desc_edit, stretch=1)
         main_layout.addLayout(sub_layout)
 
+        self.btn_save = QPushButton(self.ui_str["btn_save"])
+        self.btn_save.clicked.connect(self.save_translation)
+        main_layout.addWidget(self.btn_save)
+
         self.setLayout(main_layout)
 
     def update_ui(self):
@@ -112,7 +117,7 @@ class ModMetaPage(QWidget):
                          "description": self.desc_edit.toPlainText()}
             self.data_holder.translates["MOD_META"] = translate
             self.translate_data = translate
-            QMessageBox.question(self, "", self.ui_str["msg_save_success"], QMessageBox.Close, QMessageBox.Close)
+            QMessageBox().information(self, "", self.ui_str["msg_save_success"], QMessageBox.Close, QMessageBox.Close)
             self.is_edited = False
             return True
         else:
