@@ -130,10 +130,10 @@ class ModParser:
                 result[system_id] = system
             return result
         except OSError:
-            logging.warning("file({}) read failed", file_path)
+            logging.warning("file(%s) read failed", file_path)
             return {}
         except ValueError:
-            logging.warning("file({}) parse failed,wrong encoding", file_path)
+            logging.warning("file(%s) parse failed,wrong encoding", file_path)
             return {}
 
     @staticmethod
@@ -159,10 +159,10 @@ class ModParser:
                 result[row[id_col]] = hull
             return result
         except OSError:
-            logging.warning("file({}) read failed", file_path)
+            logging.warning("file(%s) read failed", file_path)
             return {}
         except ValueError:
-            logging.warning("file({}) parse failed,wrong encoding", file_path)
+            logging.warning("file(%s) parse failed,wrong encoding", file_path)
             return {}
 
     @staticmethod
@@ -206,10 +206,10 @@ class ModParser:
                 result[row[id_col]] = weapon
             return result
         except OSError:
-            logging.warning("file({}) read failed", file_path)
+            logging.warning("file(%s) read failed", file_path)
             return {}
         except ValueError:
-            logging.warning("file({}) parse failed,wrong encoding", file_path)
+            logging.warning("file(%s) parse failed,wrong encoding", file_path)
             return {}
 
     @staticmethod
