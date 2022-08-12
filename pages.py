@@ -5,6 +5,120 @@ from parse import ModParser
 import prototypes
 
 
+class ModMetaPage(QWidget):
+    def __init__(self, parent, ui_str: dict, data_holder: prototypes.DataHolder):
+        super().__init__(parent=parent)
+        self.ui_str = ui_str
+        self.data_holder = data_holder
+        self.mod_meta = self.data_holder.metadata
+
+        self.is_edited = False
+        self.translate_data = {}
+
+        self.get_data()
+
+        self._setup_ui()
+
+        self.update_ui()
+
+    def __text_changed(self):
+        self.is_edited = True
+
+    def get_data(self, force_update=False):
+
+        if self.data_holder.metadata is None:
+            try:
+                self.data_holder.metadata = ModParser.parse_metadata(self.data_holder.mod_path)
+            except ValueError:
+                QMessageBox.warning(self, "", self.ui_str["msg_file_parse_failed"], QMessageBox.Close,
+                                    QMessageBox.Close)
+
+    def _setup_ui(self):
+        main_layout = QVBoxLayout()
+        # main_title
+        self.title_label = QLabel()
+        self.title_label.setAlignment(Qt.AlignHCenter)
+        self.title_label.setAlignment(Qt.AlignHCenter)
+        main_layout.addWidget(self.title_label)
+
+        # name
+        temp_widget = QLabel(self.ui_str["mod_name"])
+        main_layout.addWidget(temp_widget)
+
+        self.name_display = QLineEdit()
+        self.name_display.setAlignment(Qt.AlignRight)
+        self.name_display.setReadOnly(True)
+        self.name_edit = QLineEdit()
+        self.name_edit.textChanged.connect(self.__text_changed)
+        sub_layout = QHBoxLayout()
+        sub_layout.addWidget(self.name_display, stretch=1)
+        sub_layout.addWidget(self.name_edit, stretch=1)
+        main_layout.addLayout(sub_layout)
+
+        self.version_display = QLabel()
+        self.version_display.setAlignment(Qt.AlignHCenter)
+        self.version_display.setAlignment(Qt.AlignHCenter)
+        main_layout.addWidget(self.version_display)
+
+        self.author_display = QLabel()
+        self.author_display.setAlignment(Qt.AlignHCenter)
+        self.author_display.setAlignment(Qt.AlignHCenter)
+        self.author_display.setWordWrap(True)
+        main_layout.addWidget(self.author_display)
+
+        temp_widget = QLabel(self.ui_str["mod_description"])
+        main_layout.addWidget(temp_widget)
+        self.desc_display = QTextEdit()
+        self.desc_display.setReadOnly(True)
+        self.desc_edit = QTextEdit()
+        self.desc_edit.textChanged.connect(self.__text_changed)
+        sub_layout = QHBoxLayout()
+        sub_layout.addWidget(self.desc_display, stretch=1)
+        sub_layout.addWidget(self.desc_edit, stretch=1)
+        main_layout.addLayout(sub_layout)
+
+        self.setLayout(main_layout)
+
+    def update_ui(self):
+        mod_info = self.data_holder.metadata
+        if mod_info:
+            self.title_label.setText(self.ui_str["now_editing"] + self.data_holder.metadata.id)
+            self.version_display.setText(self.ui_str["mod_version"] + self.data_holder.metadata.version)
+            self.author_display.setText(self.ui_str["mod_author"] + self.data_holder.metadata.author)
+            self.translate_data: dict = self.data_holder.translates["MOD_META"]
+            self.name_display.setText(mod_info.name)
+            self.version_display.setVisible(bool(mod_info.version))
+            self.author_display.setVisible(bool(mod_info.author))
+            if mod_info.description:
+                self.desc_display.setText(mod_info.description)
+                self.desc_edit.setReadOnly(False)
+            else:
+                self.desc_display.setText(self.ui_str["no_text_here"])
+                self.desc_edit.setReadOnly(True)
+            # translates
+            if self.translate_data.get("name"):
+                self.name_edit.setText(self.translate_data["name"])
+            else:
+                self.name_edit.setText("")
+            if self.translate_data.get("description"):
+                self.desc_edit.setText(self.translate_data["description"])
+            else:
+                self.desc_edit.setText("")
+
+    def save_translation(self):
+        if self.is_edited:
+            translate = {"id": self.data_holder.metadata.id,
+                         "name": self.name_edit.text(),
+                         "description": self.desc_edit.toPlainText()}
+            self.data_holder.translates["MOD_META"] = translate
+            self.translate_data = translate
+            QMessageBox.question(self, "", self.ui_str["msg_save_success"], QMessageBox.Close, QMessageBox.Close)
+            self.is_edited = False
+            return True
+        else:
+            return False
+
+
 class ShipHullListPage(QWidget):
     def __init__(self, parent, ui_str: dict, data_holder: prototypes.DataHolder):
         super().__init__(parent=parent)
