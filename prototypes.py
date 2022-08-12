@@ -112,6 +112,8 @@ class ShipHull(HullLike):
     property_def = {
         "id": "id",
         "name": "name",
+        "role": "designation",
+        "tech": "tech/manufacturer",
         "desc_csv": {
             "desc_long": "text1",
             "desc_short": "text2",
@@ -125,11 +127,11 @@ class ShipHull(HullLike):
 
     @property
     def hull_name(self) -> str:
-        return self._ship_name
+        return self.name
 
     @property
     def tech_manufacturer(self) -> str | None:
-        return self._tech_manufacturer
+        return self.tech
 
     @property
     def full_description(self) -> str | None:
@@ -150,9 +152,9 @@ class ShipHull(HullLike):
                  ship_system=None):
         super().__init__()
         self._id = ship_id
-        self._ship_name = ship_name
-        self.ship_designation = ship_role
-        self._tech_manufacturer = manufacturer
+        self.name = ship_name
+        self.role = ship_role
+        self.tech = manufacturer
         # descriptions
         self.desc_long = "" if desc_long is None else desc_long
         self.desc_short = "" if desc_short is None else desc_short
@@ -226,8 +228,9 @@ class ShipSkin(HullLike):
 
 class Weapon:
     property_def = {
-        "name": "name",
         "id": "id",
+
+        "name": "name",
         "tech": "tech/manufacturer",
         "role": "primaryRoleStr",
         "accuracy": "accuracyStr",
@@ -381,9 +384,13 @@ class ModInfo:
 
     def __init__(self, mod_id: str, mod_name: str):
         for key in ModInfo.property_def.keys():
-            self.__setattr__(key, None)
             self.id = mod_id
             self.name = mod_name
+
+            self.version = None
+            self.game_version = None
+            self.author = None
+            self.description = None
 
 
 class Resource:
@@ -420,19 +427,28 @@ class DataHolder:
     empty_translate = {
         "SHIP": {},
         "WEAPON": {},
-        "SHIP_SYSTEM": {}
+        "SHIP_SYSTEM": {},
+        "FACTION": {},
+        "RESOURCE": {},
+        "MOD_META": {},
     }
 
-    def __init__(self):
-        self.mod_path = ""
-        self.game_root_path = ""
+    def __init__(self, game_path=None, mod_path=None):
+        self.mod_path = mod_path if mod_path else ""
+        self.game_root_path = game_path if game_path else ""
+
+        self.metadata: ModInfo | None = None
+        self.translates: dict[str, dict[str, dict]] = self.empty_translate
+
+        self.descriptions: dict | None = None
 
         self.weapons: dict[str, Weapon] | None = None
-        self.descriptions: dict | None = None
         self.ship_hulls: dict[str, ShipHull] | None = None
         self.ship_skins: dict[str, ShipSkin] | None = None
         self.ship_systems: dict[str, ShipSystem] | None = None
-        self.translates: dict[str, dict[str, dict]] = self.empty_translate
+
+        self.resources: dict[str, Resource] | None = None
+        self.factions: dict[str, Faction] | None = None
 
     @property
     def description_csv_path(self):

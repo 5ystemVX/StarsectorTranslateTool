@@ -79,14 +79,14 @@ class AppMainWindow(QMainWindow):
 
         self.load_mod()
 
-        self.__turn_to_page(ShipHullListPage, self.data_holder)
+        self.__turn_to_page(ModMetaPage, self.data_holder)
 
     def edit_hulls(self):
         # not jump on its own
         if type(self.centralWidget()) == ShipHullListPage:
             return
         try:
-            if getattr(self.centralWidget(), "translate_block").is_edited:
+            if getattr(self.centralWidget(), "translate_block", None).is_edited:
                 reply = QMessageBox.question(self, "", self.ui_str["msg_unsaved_exit"],
                                              QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.No:
@@ -168,7 +168,7 @@ class AppMainWindow(QMainWindow):
             self.data_holder = DataHolder()
             self.data_holder.mod_path = get_mod_path
             if self.centralWidget() is not None:
-                self.__turn_to_page(ShipHullListPage, self.data_holder)
+                self.centralWidget().update()
 
     def apply_translation(self):
         shutil.copy(self.data_holder.description_csv_path, self.data_holder.description_csv_path + "_old")

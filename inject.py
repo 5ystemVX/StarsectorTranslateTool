@@ -28,9 +28,9 @@ def export_data_as_translate(data_holder: DataHolder):
             }
         for key, hull in data_holder.ship_hulls.items():
             translates["SHIP"][key] = {
-                "hull_name": hull.hull_name,
-                "tech_manufacturer": hull.tech_manufacturer,
-                "ship_designation": hull.ship_designation,
+                "name": hull.hull_name,
+                "tech": hull.tech_manufacturer,
+                "role": hull.role,
                 "desc_long": hull.desc_long,
                 "desc_short": hull.desc_short,
                 "desc_fleet": hull.desc_fleet

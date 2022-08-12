@@ -137,9 +137,9 @@ class ShipHullTranslateBlock(QWidget):
         self.edit_boxes = {}
         self.original_text = {}
         self.groups_def = {
-            "hull_name": (self.ui["hull_name"], QLineEdit),
-            "tech_manufacturer": (self.ui["tech_manufacturer"], QLineEdit),
-            "ship_designation": (self.ui["hull_designation"], QLineEdit),
+            "name": (self.ui["hull_name"], QLineEdit),
+            "tech": (self.ui["tech_manufacturer"], QLineEdit),
+            "role": (self.ui["hull_designation"], QLineEdit),
             "desc_long": (self.ui["description"], QTextEdit),
             "desc_short": (self.ui["description_short"], QTextEdit),
             "desc_fleet": (self.ui["desc_in_fleet"], QTextEdit),
