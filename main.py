@@ -42,6 +42,7 @@ class AppMainWindow(QMainWindow):
 
     def _init_gui(self, ui_str: dict):
         self.setWindowTitle(ui_str["wt_main"])
+        # assemble menubar
         menu_bar = self.menuBar()
 
         menu_file = menu_bar.addMenu(ui_str["m_file"])
@@ -74,16 +75,19 @@ class AppMainWindow(QMainWindow):
         menu_edit = menu_bar.addMenu(ui_str["m_edit"])
 
         temp = QAction(ui_str["m_edit_metadata"], self)
-        temp.triggered.connect(self.edit_mod_meta)
+        temp.triggered.connect(self._edit_mod_meta)
         menu_edit.addAction(temp)
         temp = QAction(ui_str["m_edit_ship"], self)
-        temp.triggered.connect(self.edit_hulls)
+        temp.triggered.connect(self._edit_hulls)
         menu_edit.addAction(temp)
         temp = QAction(ui_str["m_edit_weapon"], self)
-        temp.triggered.connect(self.edit_weapons)
+        temp.triggered.connect(self._edit_weapons)
         menu_edit.addAction(temp)
         temp = QAction(ui_str["m_edit_shipsystem"], self)
-        temp.triggered.connect(self.edit_systems)
+        temp.triggered.connect(self._edit_systems)
+        menu_edit.addAction(temp)
+        temp = QAction(ui_str["m_edit_hullmod"], self)
+        temp.triggered.connect(self._edit_hullmods)
         menu_edit.addAction(temp)
 
         menu_about = menu_bar.addMenu(ui_str["m_about"])
@@ -95,7 +99,7 @@ class AppMainWindow(QMainWindow):
 
         self.__turn_to_page(ModMetaPage, self.data_holder)
 
-    def edit_hulls(self):
+    def _edit_hulls(self):
         # not jump on its own
         if type(self.centralWidget()) == ShipHullListPage:
             return
@@ -110,7 +114,7 @@ class AppMainWindow(QMainWindow):
             # doesn't have module that requires saving
             self.__turn_to_page(ShipHullListPage, self.data_holder)
 
-    def edit_mod_meta(self):
+    def _edit_mod_meta(self):
         # not jump on its own
         if type(self.centralWidget()) == ModMetaPage:
             return
@@ -125,7 +129,7 @@ class AppMainWindow(QMainWindow):
             # doesn't have module that requires saving
             self.__turn_to_page(ModMetaPage, self.data_holder)
 
-    def edit_weapons(self):
+    def _edit_weapons(self):
         # not jump on its own
         if type(self.centralWidget()) == WeaponListPage:
             return
@@ -140,7 +144,7 @@ class AppMainWindow(QMainWindow):
             # doesn't have module that requires saving
             self.__turn_to_page(WeaponListPage, self.data_holder)
 
-    def edit_systems(self):
+    def _edit_systems(self):
         # not jump on its own
         if type(self.centralWidget()) == ShipSystemListPage:
             return
@@ -154,6 +158,21 @@ class AppMainWindow(QMainWindow):
         except AttributeError:
             # doesn't have module that requires saving
             self.__turn_to_page(ShipSystemListPage, self.data_holder)
+
+    def _edit_hullmods(self):
+        # not jump on its own
+        if type(self.centralWidget()) == HullModListPage:
+            return
+        try:
+            if getattr(self.centralWidget(), "translate_block").is_edited:
+                reply = QMessageBox().question(self, "", self.ui_str["msg_unsaved_exit"],
+                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.No:
+                    return
+            self.__turn_to_page(HullModListPage, self.data_holder)
+        except AttributeError:
+            # doesn't have module that requires saving
+            self.__turn_to_page(HullModListPage, self.data_holder)
 
     def __turn_to_page(self, target_class: type, data_holder: DataHolder):
         self.setCentralWidget(target_class(self, self.ui_str, data_holder))

@@ -137,6 +137,35 @@ class ModParser:
             return {}
 
     @staticmethod
+    def parse_hullmods(mod_path) -> dict:
+        result = {}
+        file_path = mod_path + r"\\data\hullmods\hull_mods.csv"
+        # check encoding
+        try:
+            csv_strings = ModParser.__read_text_file(file_path)
+            reader = csv.reader(csv_strings)
+            # separate headline
+            headers = next(reader)
+            id_col = headers.index("id")
+            name_col = headers.index("name")
+            for row in reader:
+                # skip empty cols & annotation
+                if len(row[id_col]) == 0 or row[0].startswith("#"):
+                    continue
+                hullmod_id = row[id_col]
+                hullmod = HullMod(hullmod_id)
+                hullmod.name = row[name_col]
+                hullmod.description = row[headers.index("desc")]
+                result[hullmod_id] = hullmod
+            return result
+        except OSError:
+            logging.warning("file(%s) read failed", file_path)
+            return {}
+        except ValueError:
+            logging.warning("file(%s) parse failed,wrong encoding", file_path)
+            return {}
+
+    @staticmethod
     def parse_hulls(mod_path, hull_descriptions) -> dict:
         result = {}
         file_path = mod_path + r"\data\hulls\ship_data.csv"
@@ -236,7 +265,7 @@ class ModParser:
                 metadata.description = info_json["description"]
             return metadata, info_json
         except OSError:
-            return (None, None)
+            return None, None
 
     @staticmethod
     def __erase_hash_comment(lines: list[str]) -> list[str]:
@@ -288,13 +317,3 @@ class ModParser:
                 except Exception as e:
                     file.close()
             raise ValueError("encoding error:incorrect encoding,file not read")
-
-
-if __name__ == '__main__':
-    # # modpath = r"E:\MyProjects\StarsectorTraslateTool\testfiles\Hiigaran Descendants"
-    # modpath = r"G:\[Games]\Starsector-0951aRC6\starsector-core"
-    # parse_mod_data(mod_path=modpath)
-    # pass
-
-    a = parse_ui_str(r"E:\MyProjects\StarsectorTranslateTool\zh_cn.ini")
-    print(a)

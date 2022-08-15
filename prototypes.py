@@ -423,8 +423,22 @@ class WholeMOD:
         self.strings_list = []
 
 
+class HullMod:
+    property_def = {
+        "id": "id",
+        "name": "name",
+        "description": "desc"
+    }
+
+    def __init__(self, hullmod_id):
+        self.id: str = hullmod_id
+        self.name = ""
+        self.description = ""
+
+
 class DataHolder:
     empty_translate = {
+        "HULLMOD": {},
         "SHIP": {},
         "WEAPON": {},
         "SHIP_SYSTEM": {},
@@ -449,6 +463,7 @@ class DataHolder:
 
         self.resources: dict[str, Resource] | None = None
         self.factions: dict[str, Faction] | None = None
+        self.hullmods: dict[str, HullMod] | None = None
 
     @property
     def description_csv_path(self):
@@ -474,5 +489,5 @@ class DataHolder:
         return self.mod_path + r"\mod_info.json"
 
     def clear(self):
-        self.__init__(self.game_root_path,self.mod_path)
+        self.__init__(self.game_root_path, self.mod_path)
         pass

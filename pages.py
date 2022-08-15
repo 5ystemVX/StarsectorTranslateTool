@@ -678,11 +678,9 @@ class ShipSystemListPage(QWidget):
         self.shipsystem_id_list = []
 
         self.get_data()
-
         self._setup_ui()
-        if len(self.shipsystem_id_list) > 0:
-            self.translate_block.load_data(self.data_holder.ship_systems[self.shipsystem_id_list[0]],
-                                           self.data_holder.translates.get(self.shipsystem_id_list[0]))
+
+        self.update_ui()
 
     def get_data(self, force_update: bool = False):
         if self.data_holder.descriptions is None or force_update:
@@ -932,6 +930,222 @@ class ShipSystemTranslateBlock(QWidget):
                     self.translate_data[key] = edit.toPlainText()
             self.data_holder.translates["SHIP_SYSTEM"][self.ship_system.id] = self.translate_data
             QMessageBox.question(self, "", self.ui["msg_save_success"], QMessageBox.Close, QMessageBox.Close)
+            self.is_edited = False
+            return True
+        return False
+
+
+class HullModListPage(QWidget):
+    def __init__(self, parent, ui_str: dict, data_holder: prototypes.DataHolder):
+        super().__init__(parent=parent)
+        self.ui_str = ui_str
+        self.data_holder = data_holder
+        self.hullmod_id_list = []
+
+        self.get_data()
+
+        self._setup_ui()
+
+        self.update_ui()
+
+    def get_data(self, force_update: bool = False):
+        if self.data_holder.hullmods is None or force_update:
+            self.data_holder.hullmods = ModParser.parse_hullmods(self.data_holder.mod_path)
+        self.hullmod_id_list = list(self.data_holder.hullmods.keys())
+
+    def _setup_ui(self):
+        main_layout = QHBoxLayout()
+        splitter = QSplitter(self)
+        # left_panel
+        self.item_list = QListWidget()
+        self.item_list.itemClicked.connect(self._list_clicked)
+        for item_id in self.data_holder.hullmods.keys():
+            self.item_list.addItem(item_id)
+        # right_main
+        self.translate_block = HullModTranslateBlock(self, self.ui_str, data_holder=self.data_holder)
+        # right_under
+        self.prev_button = QPushButton()
+        self.prev_button.setText(self.ui_str["btn_prev"])
+        self.prev_button.clicked.connect(self._prev_clicked)
+        self.next_button = QPushButton()
+        self.next_button.setText(self.ui_str["btn_next"])
+        self.next_button.clicked.connect(self._next_clicked)
+        self.save_button = QPushButton()
+        self.save_button.setText(self.ui_str["btn_save"])
+        self.save_button.clicked.connect(self._save_clicked)
+
+        temp_layout = QHBoxLayout()
+        temp_layout.addWidget(self.prev_button)
+        temp_layout.addSpacing(1)
+        temp_layout.addWidget(self.save_button)
+        temp_layout.addSpacing(1)
+        temp_layout.addWidget(self.next_button)
+
+        right_panel = QFrame()
+        right_panel_layout = QVBoxLayout()
+
+        right_scroll = QScrollArea(self)
+        right_scroll.setMinimumSize(600, 400)
+        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setWidget(self.translate_block)
+        right_panel_layout.addWidget(right_scroll, stretch=1)
+        right_panel_layout.addLayout(temp_layout)
+        right_panel.setLayout(right_panel_layout)
+
+        splitter.addWidget(self.item_list)
+        splitter.addWidget(right_panel)
+        main_layout.addWidget(splitter)
+
+        self.setLayout(main_layout)
+
+    def update_ui(self):
+        self.item_list.clear()
+        for system_id in self.data_holder.hullmods.keys():
+            self.item_list.addItem(system_id)
+        if len(self.item_list) > 0:
+            self.translate_block.load_data(self.data_holder.hullmods[self.hullmod_id_list[0]],
+                                           None)
+
+    def _list_clicked(self, item):
+        item_id = item.text()
+        if item_id != self.translate_block.item.id:
+            self._jump_to_item(item_id)
+
+    def _jump_to_item(self, item_id):
+        if self.__check_jump_without_saving():
+            self.item_list.setCurrentRow(self.hullmod_id_list.index(item_id))
+            self.translate_block.load_data(self.data_holder.hullmods[item_id],
+                                           self.data_holder.translates["HULLMOD"].get(item_id))
+
+    def _prev_clicked(self):
+        now_id = self.translate_block.item.id
+        now_index = self.hullmod_id_list.index(now_id)
+        # already top
+        if now_index <= 0:
+            QMessageBox().information(self, "", self.ui_str["msg_first_in_list"],
+                                      QMessageBox.Close, QMessageBox.Close)
+        else:
+            # jump to prev one
+            self._jump_to_item(self.hullmod_id_list[now_index - 1])
+
+    def _next_clicked(self):
+        now_id = self.translate_block.item.id
+        now_index = self.hullmod_id_list.index(now_id)
+        # already bottom
+        if now_index >= len(self.hullmod_id_list) - 1:
+            QMessageBox().question(self, "", self.ui_str["msg_last_in_list"],
+                                   QMessageBox.Close, QMessageBox.Close)
+        else:
+            self._jump_to_item(self.hullmod_id_list[now_index + 1])
+
+    def _save_clicked(self):
+        self.translate_block.save_translation()
+
+    def __check_jump_without_saving(self) -> bool:
+        if self.translate_block.is_edited:
+            reply = QMessageBox().question(self, "", self.ui_str["msg_unsaved_open_new"],
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                return True
+            else:
+                return False
+        return True
+
+    def update(self) -> None:
+        self.get_data(True)
+        self.update_ui()
+
+
+class HullModTranslateBlock(QWidget):
+    def __init__(self, parent, ui_str: dict, data_holder: prototypes.DataHolder):
+        super().__init__(parent=parent)
+        self.ui = ui_str
+        self.data_holder = data_holder
+        self.item = None
+        self.translate_data = {}
+        self.is_edited = False
+        self.edit_boxes = {}
+        self.original_text = {}
+        self.groups_def = {
+            "name": (self.ui["hullmod_name"], QLineEdit),
+            "description": (self.ui["hullmod_desc"], QTextEdit),
+        }
+
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout()
+        # header
+        self.title_label = QLabel()
+        layout.addWidget(self.title_label)
+
+        entry_layout = QVBoxLayout()
+
+        for key, group in self.groups_def.items():
+            entry_label = QLabel()
+            entry_label.setText(group[0])
+            entry_layout.addWidget(entry_label)
+
+            origin_text = group[1]()
+            origin_text.setReadOnly(True)
+            edit_panel = group[1]()
+
+            edit_panel.textChanged.connect(self.__text_changed)
+            if isinstance(edit_panel, QLineEdit):
+                origin_text.setAlignment(Qt.AlignTop)
+                origin_text.setAlignment(Qt.AlignRight)
+            elif isinstance(edit_panel, QTextEdit):
+                origin_text.setAlignment(Qt.AlignTop)
+                origin_text.setAlignment(Qt.AlignLeft)
+
+            temp = QHBoxLayout()
+            temp.addWidget(origin_text, stretch=1)
+            temp.addWidget(edit_panel, stretch=1)
+
+            self.original_text[key] = origin_text
+            self.edit_boxes[key] = edit_panel
+            entry_layout.addLayout(temp)
+
+        layout.addLayout(entry_layout)
+        self.setLayout(layout)
+
+    def load_data(self, hullmod: prototypes.HullMod, translate: dict | None = None):
+        # update internal data
+        self.item = hullmod
+        self.translate_data = translate or {}
+
+        # change texts
+        self.title_label.setText(self.ui["now_editing"] + " " + self.item.id)
+        for key, label in self.original_text.items():
+            text = self.item.__getattribute__(key)
+            if text:
+                label.setText(text)
+                self.edit_boxes[key].setReadOnly(False)
+            else:
+                self.edit_boxes[key].setReadOnly(True)
+                label.setText("--no text here--")
+            translate = self.translate_data.get(key)
+            if translate is None:
+                self.edit_boxes[key].setText("")
+            else:
+                self.edit_boxes[key].setText(translate)
+        # restore edit states
+        self.is_edited = False
+
+    def __text_changed(self):
+        if not self.is_edited:
+            self.is_edited = True
+
+    def save_translation(self) -> bool:
+        if self.is_edited:
+            for key, edit in self.edit_boxes.items():
+                if isinstance(edit, QLineEdit):
+                    self.translate_data[key] = edit.text()
+                elif isinstance(edit, QTextEdit):
+                    self.translate_data[key] = edit.toPlainText()
+            self.data_holder.translates["HULLMOD"][self.item.id] = self.translate_data
+            QMessageBox().information(self, "", self.ui["msg_save_success"], QMessageBox.Close, QMessageBox.Close)
             self.is_edited = False
             return True
         return False
