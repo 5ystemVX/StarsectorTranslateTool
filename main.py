@@ -1,7 +1,11 @@
 import json
+import logging.config
 import os
 import shutil
 import sys
+
+import json5
+from PyQt5.QtWidgets import QAction, QFileDialog
 
 import inject
 import parse
@@ -11,6 +15,7 @@ from prototypes import DataHolder
 
 class AppMainWindow(QMainWindow):
     def __init__(self, parent=None):
+        logging.basicConfig(filename="log.log", level=logging.INFO)
         super(AppMainWindow, self).__init__(parent)
         # properties
 
@@ -38,7 +43,7 @@ class AppMainWindow(QMainWindow):
     def _init_gui(self, ui_str: dict):
         self.setWindowTitle(ui_str["wt_main"])
         menu_bar = self.menuBar()
-        # TODO menu bar function
+
         menu_file = menu_bar.addMenu(ui_str["m_file"])
 
         temp = QAction(ui_str["m_file_load_mod"], self)
@@ -52,6 +57,11 @@ class AppMainWindow(QMainWindow):
         temp = QAction(ui_str["m_file_export"], self)
         temp.triggered.connect(self.export_translates)
         menu_file.addAction(temp)
+        temp = QAction(ui_str["m_file_export_original"], self)
+        temp.triggered.connect(self.export_original)
+        menu_file.addAction(temp)
+
+        menu_file.addSeparator()
         temp = QAction(ui_str["m_file_apply"], self)
         temp.triggered.connect(self.apply_translation)
         menu_file.addAction(temp)
@@ -153,16 +163,15 @@ class AppMainWindow(QMainWindow):
                                                     self.ui_str["wt_import_translate_file"],
                                                     self.io_path,
                                                     "*.translate")
-        if len(translate_url[0]) == 0:
-            # abort
-            return
-        else:
+        if translate_url[0]:
             self.io_path = os.path.dirname(translate_url[0])
             with open(translate_url[0], "r", encoding="utf-8") as file:
-                translates = json.loads(file.read())
+                translates = json5.load(file)
                 self.data_holder.translates = translates
-            QMessageBox.question(self, self.ui_str["wt_msg_success"], self.ui_str["msg_import_success"],
-                                 QMessageBox.Close, QMessageBox.Close)
+            QMessageBox().information(self, self.ui_str["wt_msg_success"], self.ui_str["msg_import_success"],
+                                      QMessageBox.Close, QMessageBox.Close)
+            if self.centralWidget() is not None:
+                self.centralWidget().update()
 
     def export_translates(self):
         file_path = QFileDialog.getSaveFileName(self,
@@ -176,6 +185,31 @@ class AppMainWindow(QMainWindow):
         else:
             with open(file_path[0], "w", encoding="utf-8") as save_file:
                 save_file.write(json.dumps(self.data_holder.translates))
+
+    def export_original(self):
+        file_path = QFileDialog.getSaveFileName(self,
+                                                self.ui_str["wt_export_translate_file"],
+                                                self.io_path + "/" + self.ui_str[
+                                                    "default_savefile_name"] + ".translate",
+                                                "*.translate")
+        if file_path[0]:
+            mod_path = self.data_holder.mod_path
+            # load all data
+            if not self.data_holder.descriptions:
+                desc = ModParser.parse_descriptions(mod_path)
+                self.data_holder.descriptions = desc
+            else:
+                desc = self.data_holder.descriptions
+            if not self.data_holder.weapons:
+                self.data_holder.weapons = ModParser.parse_weapons(mod_path, desc["WEAPON"])
+            if not self.data_holder.ship_hulls:
+                self.data_holder.ship_hulls = ModParser.parse_hulls(mod_path, desc["SHIP"])
+            if not self.data_holder.ship_systems:
+                self.data_holder.ship_systems = ModParser.parse_ship_systems(mod_path, desc["SHIP_SYSTEM"])
+            # write file
+            inject.export_data_as_translate(file_path[0], self.data_holder)
+            QMessageBox().information(self, self.ui_str["wt_msg_success"], self.ui_str["msg_save_success"],
+                                      QMessageBox.Close, QMessageBox.Close)
 
     def load_mod(self):
         get_mod_path = QFileDialog.getExistingDirectory(self,
@@ -208,15 +242,18 @@ class AppMainWindow(QMainWindow):
             temp = inject.inject_ship_hull_csv(self.data_holder)
             shutil.copy(temp, self.data_holder.hull_csv_path)
 
-            QMessageBox.question(self, self.ui_str["wt_msg_success"], self.ui_str["msg_apply_success"],
-                                 QMessageBox.Close, QMessageBox.Close)
+            temp = inject.rewrite_mod_json(self.data_holder)
+            shutil.copy(temp, self.data_holder.mod_info_path)
+
+            QMessageBox().information(self, self.ui_str["wt_msg_success"], self.ui_str["msg_apply_success"],
+                                      QMessageBox.Close, QMessageBox.Close)
         except Exception:
             shutil.copy(self.data_holder.description_csv_path + "_old", self.data_holder.description_csv_path)
             shutil.copy(self.data_holder.weapon_csv_path + "_old", self.data_holder.weapon_csv_path)
             shutil.copy(self.data_holder.system_csv_path + "_old", self.data_holder.system_csv_path)
             shutil.copy(self.data_holder.hull_csv_path + "_old", self.data_holder.hull_csv_path)
-            QMessageBox.question(self, self.ui_str["wt_msg_fail"], self.ui_str["msg_apply_fail"],
-                                 QMessageBox.Close, QMessageBox.Close)
+            QMessageBox().critical(self, self.ui_str["wt_msg_fail"], self.ui_str["msg_apply_fail"],
+                                   QMessageBox.Close, QMessageBox.Close)
 
     def show_about(self):
         about_info = """程序作者:Sy5temVX(edgfih)\n\nversion 0.0.2"""

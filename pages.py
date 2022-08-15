@@ -1,4 +1,4 @@
-from PyQt5.QtCore import *
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 
 import prototypes
@@ -437,8 +437,13 @@ class WeaponListPage(QWidget):
 
         self.setLayout(main_layout)
 
-    def refresh_ui(self):
-        self._setup_ui()
+    def update_ui(self):
+        self.weapon_list.clear()
+        for hull_id in self.data_holder.ship_hulls.keys():
+            self.weapon_list.addItem(hull_id)
+        if len(self.weapon_list) > 0:
+            self.translate_block.load_data(self.data_holder.weapons[self.weapon_id_list[0]],
+                                           self.data_holder.translates["WEAPON"].get(self.weapon_id_list[0]))
 
     def _list_clicked(self, item):
         item_id = item.text()
@@ -487,6 +492,10 @@ class WeaponListPage(QWidget):
             else:
                 return False
         return True
+
+    def update(self) -> None:
+        self.get_data(True)
+        self.update_ui()
 
 
 class WeaponTranslateBlock(QWidget):
@@ -730,8 +739,13 @@ class ShipSystemListPage(QWidget):
 
         self.setLayout(main_layout)
 
-    def refresh_ui(self):
-        self._setup_ui()
+    def update_ui(self):
+        self.ship_system_list.clear()
+        for system_id in self.data_holder.ship_hulls.keys():
+            self.ship_system_list.addItem(system_id)
+        if len(self.ship_system_list) > 0:
+            self.translate_block.load_data(self.data_holder.ship_systems[self.shipsystem_id_list[0]],
+                                           self.data_holder.translates["SHIP_SYSTEM"].get(self.shipsystem_id_list[0]))
 
     def _ship_system_list_clicked(self, item):
         ship_system_id = item.text()
@@ -780,6 +794,10 @@ class ShipSystemListPage(QWidget):
             else:
                 return False
         return True
+
+    def update(self) -> None:
+        self.get_data(True)
+        self.update_ui()
 
 
 class ShipSystemTranslateBlock(QWidget):

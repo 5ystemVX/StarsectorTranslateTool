@@ -1,17 +1,26 @@
+import copy
 import csv
 import json
 import os.path
 import re
 
-import parse
-from prototypes import DataHolder
 import chardet
 
+import parse
+from prototypes import DataHolder
 
-def export_data_as_translate(data_holder: DataHolder):
-    file_path = data_holder.mod_path + r"/translation.translate"
+
+def export_data_as_translate(file_path, data_holder: DataHolder):
     with open(file_path, "w", newline="", encoding="utf-8") as save_file:
-        translates = DataHolder().translates
+        translates = copy.deepcopy(DataHolder.empty_translate)
+        # SAVE META
+        if data_holder.metadata is not None:
+            translates["MOD_META"] = {
+                "id": data_holder.metadata.id,
+                "name": data_holder.metadata.name,
+                "description": data_holder.metadata.description
+            }
+
         for key, weapon in data_holder.weapons.items():
             translates["WEAPON"][key] = {
                 "name": weapon.name,
@@ -43,11 +52,7 @@ def export_data_as_translate(data_holder: DataHolder):
                 "desc_on_ship": system.desc_on_ship_trans
             }
 
-        save_file.write(json.dumps(translates))
-
-
-# def inject_translations(data_holder: DataHolder, override=True):
-#     ship_csv_path = inject_ship_hull_csv(data_holder)
+        json.dump(translates, save_file)
 
 
 def inject_ship_hull_csv(data_holder) -> str | None:
